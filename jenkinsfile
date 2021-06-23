@@ -1,0 +1,69 @@
+//Write jenkins script
+node {
+  
+  stage('GIT CheckOut') {
+    git 'https://github.com/ruchi672/newdemo.git'
+  }
+
+  stage('Maven-Clean') {
+    sh label: '', script: 'mvn clean'
+  }
+
+  stage('Maven-Compile') {
+    sh label: '', script: 'mvn compile'
+  }
+  
+  stage('Maven-Test') {
+    sh label: '', script: 'mvn test'
+  }
+
+
+ stage('Sonar Analysis') {
+   withSonarQubeEnv('sonar') {
+        sh "mvn sonar:sonar"
+    }
+  }
+  
+  stage('Maven-Package') {
+    sh label: '', script: 'mvn package'
+  }
+
+   
+
+   stage('Jfrog Artifacory Upload') {
+        def server= Artifactory.server 'artifactory'
+                    def uploadSpec= """{
+                        "files": [{
+                        "pattern": "target/*.war",
+                        "target": "spring-mvc-sample-2.0"}]
+                    }"""
+        server.upload(uploadSpec)
+        
+        }
+        
+        
+  stage('Download package from JFrog') {
+            def server= Artifactory.server 'artifactory'
+            def downloadSpec = """{
+            "files": [
+            {
+                "pattern": "spring-mvc-sample-2.0/spring-mvc-sample-2.0.war",
+                "target": "./spring-mvc-sample-2.0.war"
+            }
+            ]
+            }"""
+        server.download(downloadSpec)
+    }
+       
+ stage('Docker-Stage-Deployment') {
+   sh label: '', script: 'docker-compose up -d --build'
+  }
+  
+  stage('Pushing DockerImage to DockerHub') {
+	  docker.withRegistry('', 'ruchi-dockerhub1' ) {
+		    sh label: '', script: 'docker push ruchi672/spring-mvc-sample-2.0:$BUILD_NUMBER'
+		  }
+   
+  }
+        
+}

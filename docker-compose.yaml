@@ -1,0 +1,10 @@
+version: '2'
+
+
+services:
+  hotel:
+    build: . 
+    image: ruchi672/spring-mvc-sample-2.0:$BUILD_NUMBER
+    container_name: spring-mvc-sample-2.0
+    ports:
+      - '30080:8080'
